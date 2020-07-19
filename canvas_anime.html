@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html itemscope itemtype="http://schema.org/WebPage">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0, user-scalable=no">
+    <title>HTML5 Canvas2D Animation Recording using RecordRTC</title>    
+    <meta name="description" content="Record canvas animation using RecordRTC.">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+        body{
+            text-align: center;
+            margin: 0px;
+            padding: 0px;
+            font-family: 'Roboto', sans-serif;
+            background-color: white;
+        }
+        #canvas-video {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            max-width: 500px !important;
+            max-height: 500px !important;
+            margin: 0 auto;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        .canvas-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            max-width: 100%;
+            max-height: 100%;
+            display: none;
+        }
+        .ml2 {
+            position: absolute;
+            left: 0; 
+            right: 0; 
+            bottom: 0px;
+            z-index: 200;
+            max-width: 100%;
+            max-height: 100%;
+            background-color: #6643DF;
+            padding: 12px;
+            margin: 30px;
+            border-left: 12px solid #63E795;
+            border-radius: 2px;
+            line-height: 1.8em;
+            text-align: left;
+        }
+
+        .ml2 .letter {
+            display: inline-block;
+            line-height: 1em;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+    <body>
+        <div id="canvas-video">
+            <img id="bg-image" class="canvas-image" src="assets/media/images/1.jpeg">
+            <img class="canvas-image" src="assets/media/images/2.jpeg">
+            <img class="canvas-image" src="assets/media/images/3.jpeg">
+            <img class="canvas-image" src="assets/media/images/4.jpeg">
+            <div class="ml2"></div>
+        <button id="btn-start-recording" style="position:fixed;bottom:20px;left:20px">Start Recording</button>
+        <canvas id="background-canvas" style="position:absolute; top:-99999999px; left:-9999999999px;"></canvas>
+    
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.0/anime.min.js"></script>
+        <script src="https://www.webrtc-experiment.com/RecordRTC.js"></script>
+        <script src="https://www.webrtc-experiment.com/html2canvas.min.js"></script>
+        <script src="https://code.responsivevoice.org/responsivevoice.js?key=91cYdino"></script>
+    <script>
+
+        (function () {
+            var lastTime = 0, vendors = ['ms', 'moz', 'webkit', 'o'];
+            for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+                window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+                window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'RequestCancelAnimationFrame'];
+            }
+            if (!window.requestAnimationFrame)
+                window.requestAnimationFrame = function (callback, element) {
+                    var currTime = new Date().getTime();
+                    var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+                    var id = window.setTimeout(function () {
+                        callback(currTime + timeToCall);
+                    }, timeToCall);
+                    lastTime = currTime + timeToCall;
+                    return id;
+                };
+            if (!window.cancelAnimationFrame)
+                window.cancelAnimationFrame = function (id) {
+                    clearTimeout(id);
+                };
+        }());
+
+        var recorder;
+        var isStoppedRecording = true;
+
+        var canvasVideo = document.getElementById('canvas-video');
+        var canvas2d = document.getElementById('background-canvas');
+        var context = canvas2d.getContext('2d');
+        canvas2d.width = canvasVideo.clientWidth;
+        canvas2d.height = canvasVideo.clientHeight;
+
+        function render() {
+            html2canvas(canvasVideo, {scale: 2}).then(function(canvas) {
+                context.clearRect(0, 0, canvas2d.width, canvas2d.height);
+                context.drawImage(canvas, 0, 0, canvas2d.width, canvas2d.height);
+                if(isStoppedRecording) {
+                    return;
+                }
+                requestAnimationFrame(render);
+            });
+        }
+
+        function startRecorder(){
+            console.log("Started Recording")
+            isStoppedRecording =false;
+            recorder = new RecordRTC(canvas2d, {
+                type: 'canvas',
+                mimeType: 'video/webm;codecs=vp9',
+            });
+            render()
+            recorder.startRecording();
+        }
+
+        function stopRecorder(){
+            console.log("Finished Recording")
+            setTimeout(() => {
+                recorder.stopRecording(function(blob) {
+                    isStoppedRecording = true;
+                    recorder.save("canvas_anime.webm")
+                    recorder.destroy()
+                    recorder = null;
+                })
+            }, 2000);
+        }
+
+        var texts = ["Lublin will also vacate her board seat, which will be filled with a staffer, elected by peers on an annual basis, the letter said.", "In 2018 the Board of Directors was made aware of concerns at Crisis Text Line about inappropriate conduct of individuals in leadership positions, including CEO Nancy Lublin.", "CNN Business made repeated attempts to contact Lublin for comment, but received no response.", "This week, using the Twitter hashtag #NotMyCrisisTextLine, people have drawn attention to the walkout and levied allegations of a toxic workplace under Lublin's leadership."]
+        var LOOP_MAX = 4
+        var LOOP_COUNT = 0
+        var ROT_VAL = 4
+        var SENTENCE_DURATION = 0
+        
+        function setImage(index) {
+            var images = document.querySelectorAll(".canvas-image");
+            for (let i = 0; i < images.length; i++)
+            {
+                if(i==index){
+                    images[i].style.display = 'block'
+                    images[i].style.zIndex = 100 
+                }else{
+                    images[i].style.display = 'none'
+                    images[i].style.zIndex = -1
+                }
+            }
+        }
+
+        function setSentenceDuration(index){
+            SENTENCE_DURATION = texts[index].length * 80
+            console.log("Sentence Duration : ",SENTENCE_DURATION)
+        }
+        
+        function setText(index){
+            var textWrapper = document.querySelector('.ml2');
+            setSentenceDuration(index)
+            textWrapper.innerHTML = texts[index] 
+            textWrapper.innerHTML = textWrapper.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
+        }
+
+        function speakText(index){
+            responsiveVoice.speak(texts[index], 'Australian Male')
+        }
+        
+        setImage(0)
+        setText(0)
+        
+        var animator = anime.timeline({
+            autoplay:false,
+            loop: LOOP_MAX,
+            loopBegin: function(anim) {
+                if(LOOP_COUNT === 0){
+                    startRecorder()
+                }
+                setTimeout(() => speakText(LOOP_COUNT), 1000)
+            },
+            loopComplete: function(anim){
+                LOOP_COUNT += 1;
+                if(LOOP_COUNT == LOOP_MAX){
+                    LOOP_COUNT = 0
+                    setImage(LOOP_COUNT)
+                    setText(LOOP_COUNT)
+                    stopRecorder()
+                }
+                else{
+                    setImage(LOOP_COUNT)
+                    setText(LOOP_COUNT)
+                    ROT_VAL * -1
+                }
+            }
+        }).add({
+            targets: '.canvas-image',
+            scale: {
+                value: [1.2, 1.7],
+                duration: () => {return SENTENCE_DURATION + 2250}
+            },
+            easing: 'linear',
+            rotate: {
+                value: [0, ROT_VAL],
+                duration: () => {return SENTENCE_DURATION + 2250}
+            },
+        }, 250).add({
+            targets: '.ml2',
+            scaleX:[0, 1],
+            duration: 750,
+            easing: 'easeInOutQuart',
+        }, 500).add({
+            targets: '.ml2 .letter',
+            opacity: [
+                { value: [0, 1], duration: 500},
+                { value: [1, 0], duration: 500, delay: () => {return SENTENCE_DURATION} }
+            ],
+            delay: anime.stagger(2),
+        }, 1250).add({
+            targets: '.ml2',
+            scaleX:[1, 0],
+            duration: 500,
+            easing: 'easeInOutQuart',
+        });
+
+        document.getElementById('btn-start-recording').onclick = function() {
+            animator.play() || animator.restart()
+        };
+    </script>
+</body>
+</html>
